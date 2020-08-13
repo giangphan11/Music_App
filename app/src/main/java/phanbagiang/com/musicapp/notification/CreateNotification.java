@@ -21,9 +21,11 @@ public class CreateNotification {
     public static final String ACTION_PREVIOUS="actionprevious";
     public static final String ACTION_NEXT="actionnext";
     public static final String ACTION_PLAY="actionplay";
+    public static final String ACTION_CLOSE="actionclose";
 
 
     public static Notification notification;
+
 
     public static void CreateNotification(Context context, MusicFile musicFile, int playButton, int position, int size){
         if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O){
@@ -52,8 +54,14 @@ public class CreateNotification {
              PendingIntent pendingIntentPlay=PendingIntent.getBroadcast(context,0,
                     intentPlay,PendingIntent.FLAG_UPDATE_CURRENT);
 
+             // close
+            Intent intentClose=new Intent(context,ActionService.class)
+                    .setAction(ACTION_CLOSE);
+            PendingIntent pendingIntentClose=PendingIntent.getBroadcast(context,0,
+                    intentClose,PendingIntent.FLAG_UPDATE_CURRENT);
+            int drw_close=R.drawable.ic_close;
+
              // next
-            // previous
             Intent intentNext=new Intent(context,ActionService.class)
                     .setAction(ACTION_NEXT);
             PendingIntent pendingIntentNext=PendingIntent.getBroadcast(context,0,
@@ -66,15 +74,18 @@ public class CreateNotification {
                     .setContentTitle(musicFile.getTitle())
                     .setContentText(musicFile.getArtist())
                     .setLargeIcon(bitmap)
-                    .addAction(drw_next,"Next",pendingIntentNext)
                     .addAction(drw_pre,"Previous",pendingIntentPrevious)
                     .addAction(playButton,"Play",pendingIntentPlay)
+                    .addAction(drw_next,"Next",pendingIntentNext)
+                    .addAction(drw_close,"Close",pendingIntentClose)
                     .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
                             .setShowActionsInCompactView(0,1,2)
                             .setMediaSession(mediaSessionCompat.getSessionToken()))
                     .setOnlyAlertOnce(true) // show notification only first time
                     .setShowWhen(false)
+                    .setOngoing(true)
                     .setPriority(NotificationManagerCompat.IMPORTANCE_HIGH)
+                    .setSubText((position+1)+"/"+(size+1))
                     .build();
 
             notificationManagerCompat.notify(1,notification);

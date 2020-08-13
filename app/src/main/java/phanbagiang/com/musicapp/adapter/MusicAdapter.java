@@ -2,6 +2,8 @@ package phanbagiang.com.musicapp.adapter;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -41,6 +43,8 @@ public class MusicAdapter extends RecyclerView.Adapter<MusicAdapter.ViewHolder> 
         holder.txtTitle.setText(mData.get(position).getTitle());
         holder.txtArtist.setText(mData.get(position).getArtist());
         byte []art=getAlbumArt(mData.get(position).getPath());
+
+        //Bitmap bitmap= BitmapFactory.decodeByteArray(art,0,art.length);
         if(art!=null){
             Glide.with(this.mContext)
                     .load(art)

@@ -4,6 +4,9 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.palette.graphics.Palette;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -13,8 +16,10 @@ import android.graphics.drawable.GradientDrawable;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
@@ -22,6 +27,7 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+import phanbagiang.com.musicapp.notification.CreateNotification.*;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -30,14 +36,19 @@ import java.util.ArrayList;
 
 import phanbagiang.com.musicapp.R;
 import phanbagiang.com.musicapp.model.MusicFile;
+import phanbagiang.com.musicapp.notification.CreateNotification;
 
 import static phanbagiang.com.musicapp.activities.MainActivity.musicFiles;
 
 public class PlayerActivity extends AppCompatActivity implements MediaPlayer.OnCompletionListener {
+    private static final String TAG = "PlayerActivity";
+
     ImageView btnBack, btnMenu, btn_song_suffer,btn_song_previous,btn_song_next, btn_song_repeat,imageAlbum ;
     TextView song_name, song_artist, txt_song_duration_end,txt_song_duration_start;
     SeekBar seekBar;
     FloatingActionButton btnPlayPause;
+
+    NotificationManager notificationManager;
 
     static ArrayList<MusicFile>listOfMusic=new ArrayList<>();
     private Intent intent;
@@ -54,9 +65,26 @@ public class PlayerActivity extends AppCompatActivity implements MediaPlayer.OnC
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
+
         addControls();
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.O){
+            createChanel();
+        }
         addEvents();
     }
+
+    private void createChanel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel channel= new NotificationChannel(CreateNotification.CHANNEL_ID
+            ,"Phan", NotificationManager.IMPORTANCE_HIGH);
+
+            notificationManager=getSystemService(NotificationManager.class);
+            if(notificationManager!=null){
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
+    }
+
     private void addControls(){
         listOfMusic=musicFiles;
         intent=getIntent();
@@ -137,6 +165,7 @@ public class PlayerActivity extends AppCompatActivity implements MediaPlayer.OnC
         }
         else{
             btnPlayPause.setImageResource(R.drawable.ic_pause);
+
             mediaPlayer.start();
             seekBar.setMax(mediaPlayer.getDuration()/1000);
 
@@ -151,6 +180,7 @@ public class PlayerActivity extends AppCompatActivity implements MediaPlayer.OnC
                 }
             });
         }
+
     }
     private void preThreadBtn(){
         preThread=new Thread(){
@@ -173,6 +203,9 @@ public class PlayerActivity extends AppCompatActivity implements MediaPlayer.OnC
             mediaPlayer.release();
             position=((position-1)<0 ?(listOfMusic.size()-1) :(position-1)); // if 3 ngôi
              // nếu biểu thức đúng thì vế thứ nhất, sai thì vế thứ 2
+            //Log.e(TAG, "position: "+position );
+            CreateNotification.CreateNotification(getApplicationContext(),listOfMusic.get(position),R.drawable.ic_play,position,listOfMusic.size()-1);
+
             uri= Uri.parse(listOfMusic.get(position).getPath());
             mediaPlayer=MediaPlayer.create(getApplicationContext(),uri);
             setMetaData(uri);
@@ -216,6 +249,7 @@ public class PlayerActivity extends AppCompatActivity implements MediaPlayer.OnC
                         seekBar.setProgress(current_position);
                     }
                     handler.postDelayed(this,1000);
+
                 }
             });
             mediaPlayer.setOnCompletionListener(this);
@@ -242,6 +276,11 @@ public class PlayerActivity extends AppCompatActivity implements MediaPlayer.OnC
             mediaPlayer.stop();
             mediaPlayer.release();
             position=((position+1)%listOfMusic.size());
+
+            //Log.e(TAG, "position: "+position );
+            CreateNotification.CreateNotification(getApplicationContext(),listOfMusic.get(position),R.drawable.ic_play,position,listOfMusic.size()-1);
+
+
             uri= Uri.parse(listOfMusic.get(position).getPath());
             mediaPlayer=MediaPlayer.create(getApplicationContext(),uri);
             setMetaData(uri);
@@ -407,6 +446,24 @@ public class PlayerActivity extends AppCompatActivity implements MediaPlayer.OnC
             song_artist.setTextColor(Color.DKGRAY);
         }
     }
+
+    BroadcastReceiver broadcastReceiver=new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action=intent.getExtras().getString("actionname");
+            switch (action){
+                case CreateNotification.ACTION_PLAY:
+                    playPauseBtnClicked();
+                    break;
+                case CreateNotification.ACTION_PREVIOUS:
+                    preBtnClicked();
+                    break;
+                case CreateNotification.ACTION_NEXT:
+                    nextBtnClicked();
+                    break;
+            }
+        }
+    };
 
     private void ImageAnimation(final Context context, final ImageView imageView, final Bitmap bitmap){
         Animation animOut= AnimationUtils.loadAnimation(context,android.R.anim.fade_out);
